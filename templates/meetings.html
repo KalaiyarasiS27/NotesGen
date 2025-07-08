@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meeting History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .main-container {
+            position: relative;
+            z-index: 2;
+            padding: 2rem 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.05);
+            padding: 3rem 2rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        h1 {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+        
+        h1::after {
+            content: '';
+            position: absolute;
+            bottom: -10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 4px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 2px;
+        }
+        
+        .subtitle {
+            color: #64748b;
+            font-size: 1.1rem;
+            font-weight: 400;
+        }
+        
+        .btn-back {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            color: #475569;
+            border-radius: 12px;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-back:hover {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            color: #334155;
+            text-decoration: none;
+        }
+        
+        .meeting-card {
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border: 1px solid rgba(102, 126, 234, 0.1);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .meeting-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 32px rgba(102, 126, 234, 0.15);
+            border-color: rgba(102, 126, 234, 0.2);
+        }
+        
+        .meeting-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .meeting-title {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1.1rem;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        
+        .badge {
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 0.25rem 0.5rem;
+            border-radius: 6px;
+        }
+        
+        .bg-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+        }
+        
+        .bg-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%) !important;
+        }
+        
+        .bg-warning {
+            background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+        }
+        
+        .meeting-date {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+        }
+        
+        .meeting-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .content-section {
+            background: rgba(248, 250, 252, 0.8);
+            border-radius: 12px;
+            padding: 1rem;
+            border: 1px solid rgba(102, 126, 234, 0.08);
+        }
+        
+        .content-section h6 {
+            color: #475569;
+            font-weight: 600;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .content-text {
+            color: #334155;
+            font-size: 0.95rem;
+            line-height: 1.6;
+            white-space: pre-wrap;
+            max-height: 150px;
+            overflow-y: auto;
+        }
+        
+        .btn-download {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            border-radius: 12px;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        
+        .btn-download:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #64748b;
+        }
+        
+        .empty-state i {
+            font-size: 4rem;
+            color: #cbd5e1;
+            margin-bottom: 1rem;
+        }
+        
+        .empty-state h3 {
+            color: #475569;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1rem;
+                margin-top: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .meeting-content {
+                grid-template-columns: 1fr;
+                gap: 1rem;
+            }
+            
+            .meeting-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+        }
+        
+        /* Custom scrollbar */
+        .content-text::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .content-text::-webkit-scrollbar-track {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 3px;
+        }
+        
+        .content-text::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+        }
+        
+        /* Animation for cards */
+        .meeting-card {
+            animation: fadeInUp 0.6s ease forwards;
+            opacity: 0;
+            transform: translateY(20px);
+            }
+        
+        .meeting-card:nth-child(1) { animation-delay: 0.1s; }
+        .meeting-card:nth-child(2) { animation-delay: 0.2s; }
+        .meeting-card:nth-child(3) { animation-delay: 0.3s; }
+        .meeting-card:nth-child(4) { animation-delay: 0.4s; }
+        .meeting-card:nth-child(5) { animation-delay: 0.5s; }
+        
+        @keyframes fadeInUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .btn-edit {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            color: white;
+            border-radius: 12px;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+        
+        .btn-edit:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+            color: white;
+            text-decoration: none;
+        }
+        
+        .btn-save {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+            margin-right: 0.5rem;
+        }
+        
+        .btn-save:hover {
+            background: linear-gradient(135deg, #059669 0%, #047857 100%);
+            transform: translateY(-1px);
+            color: white;
+        }
+        
+        .btn-cancel {
+            background: linear-gradient(135deg, #6b7280 0%, #4b5563 100%);
+            border: none;
+            color: white;
+            border-radius: 8px;
+            font-weight: 500;
+            padding: 0.5rem 1rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-cancel:hover {
+            background: linear-gradient(135deg, #4b5563 0%, #374151 100%);
+            transform: translateY(-1px);
+            color: white;
+        }
+        
+        .content-text.editable {
+            background: white;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 1rem;
+            min-height: 150px;
+            resize: vertical;
+            outline: none;
+            font-family: inherit;
+            font-size: inherit;
+            line-height: inherit;
+        }
+        
+        .content-text.editable:focus {
+            border-color: #5a6fd8;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        .edit-controls {
+            display: flex;
+            gap: 0.5rem;
+            justify-content: flex-end;
+        }
+        
+        .btn-sm {
+            font-size: 0.875rem;
+            padding: 0.5rem 1rem;
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="container">
+            <div class="header-section">
+                <h1>Meeting History</h1>
+                <p class="subtitle">Review and download your meeting transcripts</p>
+                <a href="/" class="btn-back">
+                    <i class="bi bi-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+            
+            {% if meetings|length > 0 %}
+                <div class="meetings-grid">
+                {% for meeting in meetings %}
+                    <div class="meeting-card">
+                        <div class="meeting-header">
+                            <div class="meeting-info">
+                                <h5 class="meeting-title">
+                                    {{ meeting.filename }}
+                                    {% if meeting.meeting_type == 'live' %}
+                                        <span class="badge bg-danger ms-2">Live Meeting</span>
+                                    {% elif meeting.meeting_type == 'record' %}
+                                        <span class="badge bg-warning ms-2">Recorded Meeting</span>
+                                    {% else %}
+                                        <span class="badge bg-primary ms-2">Uploaded File</span>
+                                    {% endif %}
+                                </h5>
+                            </div>
+                            <span class="meeting-date">{{ meeting.timestamp.strftime('%Y-%m-%d %H:%M:%S') if meeting.timestamp else 'N/A' }}</span>
+                        </div>
+                        
+                        <div class="meeting-content">
+                            <div class="content-section">
+                                <h6><i class="bi bi-journal-text"></i> Summary</h6>
+                                <div class="content-text" id="summary-{{ loop.index }}" data-filename="{{ meeting.filename }}">{{ meeting.summary }}</div>
+                                <div class="edit-controls mt-2" id="summary-controls-{{ loop.index }}" style="display: none;">
+                                    <button class="btn-save btn-sm" onclick="saveEdit('{{ meeting.filename }}', 'summary', {{ loop.index }})">
+                                        <i class="bi bi-check"></i> Save
+                                    </button>
+                                    <button class="btn-cancel btn-sm" onclick="cancelEdit('summary', {{ loop.index }})">
+                                        <i class="bi bi-x"></i> Cancel
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="content-section">
+                                <h6><i class="bi bi-mic"></i> Transcript</h6>
+                                <div class="content-text" id="transcript-{{ loop.index }}" data-filename="{{ meeting.filename }}">{{ meeting.transcript }}</div>
+                                <div class="edit-controls mt-2" id="transcript-controls-{{ loop.index }}" style="display: none;">
+                                    <button class="btn-save btn-sm" onclick="saveEdit('{{ meeting.filename }}', 'transcript', {{ loop.index }})">
+                                        <i class="bi bi-check"></i> Save
+                                    </button>
+                                    <button class="btn-cancel btn-sm" onclick="cancelEdit('transcript', {{ loop.index }})">
+                                        <i class="bi bi-x"></i> Cancel
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="text-center">
+                            <button class="btn-edit btn-sm me-2" onclick="editMeeting('{{ meeting.filename }}', {{ loop.index }})">
+                                <i class="bi bi-pencil"></i> Edit
+                            </button>
+                            <a href="/download/{{ meeting.filename }}" class="btn-download">
+                                <i class="bi bi-download"></i>
+                                Download Transcript
+                            </a>
+                        </div>
+                    </div>
+                {% endfor %}
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="bi bi-inbox"></i>
+                    <h3>No meetings found</h3>
+                    <p>Start by uploading an audio file, starting a live meeting, or recording a meeting to see your transcripts here.</p>
+                </div>
+        {% endif %}
+        </div>
+    </div>
+    
+    <script>
+        // Store original content for cancel functionality
+        const originalContent = {};
+        
+        function editMeeting(filename, index) {
+            // Store original content
+            const summaryElement = document.getElementById(`summary-${index}`);
+            const transcriptElement = document.getElementById(`transcript-${index}`);
+            
+            originalContent[`summary-${index}`] = summaryElement.textContent;
+            originalContent[`transcript-${index}`] = transcriptElement.textContent;
+            
+            // Convert to editable textareas
+            convertToEditable(summaryElement, `summary-controls-${index}`);
+            convertToEditable(transcriptElement, `transcript-controls-${index}`);
+            
+            // Show edit controls
+            document.getElementById(`summary-controls-${index}`).style.display = 'flex';
+            document.getElementById(`transcript-controls-${index}`).style.display = 'flex';
+            
+            // Hide edit button
+            const editBtn = summaryElement.closest('.meeting-card').querySelector('.btn-edit');
+            editBtn.style.display = 'none';
+        }
+        
+        function convertToEditable(element, controlsId) {
+            const textarea = document.createElement('textarea');
+            textarea.className = 'content-text editable';
+            textarea.value = element.textContent;
+            textarea.setAttribute('data-filename', element.getAttribute('data-filename'));
+            textarea.setAttribute('data-original-id', element.id);
+            
+            // Replace the div with textarea
+            element.parentNode.insertBefore(textarea, element);
+            element.style.display = 'none';
+            
+            // Focus on the textarea
+            textarea.focus();
+        }
+        
+        function saveEdit(filename, type, index) {
+            const textarea = document.querySelector(`#${type}-${index}`).nextElementSibling;
+            const content = textarea.value;
+            
+            // Get the other content (summary or transcript)
+            const otherType = type === 'summary' ? 'transcript' : 'summary';
+            const otherTextarea = document.querySelector(`#${otherType}-${index}`).nextElementSibling;
+            const otherContent = otherTextarea ? otherTextarea.value : document.getElementById(`${otherType}-${index}`).textContent;
+            
+            // Prepare data for API
+            const data = {
+                summary: type === 'summary' ? content : otherContent,
+                transcript: type === 'transcript' ? content : otherContent
+            };
+            
+            // Show loading state
+            const saveBtn = document.querySelector(`#${type}-controls-${index} .btn-save`);
+            const originalText = saveBtn.innerHTML;
+            saveBtn.innerHTML = '<i class="bi bi-hourglass-split"></i> Saving...';
+            saveBtn.disabled = true;
+            
+            // Send update to server
+            fetch(`/meeting/${filename}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(data)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    // Update the display
+                    convertFromEditable(textarea, type, index);
+                    convertFromEditable(otherTextarea, otherType, index);
+                    
+                    // Hide controls
+                    document.getElementById(`${type}-controls-${index}`).style.display = 'none';
+                    document.getElementById(`${otherType}-controls-${index}`).style.display = 'none';
+                    
+                    // Show edit button
+                    const editBtn = textarea.closest('.meeting-card').querySelector('.btn-edit');
+                    editBtn.style.display = 'inline-flex';
+                    
+                    // Show success message
+                    showNotification('Meeting updated successfully!', 'success');
+                } else {
+                    throw new Error(result.error || 'Failed to update meeting');
+                }
+            })
+            .catch(error => {
+                console.error('Error saving edit:', error);
+                showNotification('Failed to update meeting: ' + error.message, 'error');
+                
+                // Reset button
+                saveBtn.innerHTML = originalText;
+                saveBtn.disabled = false;
+            });
+        }
+        
+        function cancelEdit(type, index) {
+            const textarea = document.querySelector(`#${type}-${index}`).nextElementSibling;
+            const otherType = type === 'summary' ? 'transcript' : 'summary';
+            const otherTextarea = document.querySelector(`#${otherType}-${index}`).nextElementSibling;
+            
+            // Restore original content
+            convertFromEditable(textarea, type, index, originalContent[`${type}-${index}`]);
+            if (otherTextarea) {
+                convertFromEditable(otherTextarea, otherType, index, originalContent[`${otherType}-${index}`]);
+            }
+            
+            // Hide controls
+            document.getElementById(`${type}-controls-${index}`).style.display = 'none';
+            document.getElementById(`${otherType}-controls-${index}`).style.display = 'none';
+            
+            // Show edit button
+            const editBtn = textarea.closest('.meeting-card').querySelector('.btn-edit');
+            editBtn.style.display = 'inline-flex';
+        }
+        
+        function convertFromEditable(textarea, type, index, content = null) {
+            const originalElement = document.getElementById(`${type}-${index}`);
+            originalElement.textContent = content || textarea.value;
+            originalElement.style.display = 'block';
+            textarea.remove();
+        }
+        
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.textContent = message;
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 1rem 1.5rem;
+                border-radius: 8px;
+                color: white;
+                font-weight: 500;
+                z-index: 1000;
+                animation: slideIn 0.3s ease;
+                background: ${type === 'success' ? 'linear-gradient(135deg, #10b981 0%, #059669 100%)' : 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)'};
+                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Remove after 3 seconds
+            setTimeout(() => {
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => {
+                    if (notification.parentNode) {
+                        notification.parentNode.removeChild(notification);
+                    }
+                }, 300);
+            }, 3000);
+        }
+        
+        // Add CSS animations for notifications
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes slideIn {
+                from { transform: translateX(100%); opacity: 0; }
+                to { transform: translateX(0); opacity: 1; }
+            }
+            @keyframes slideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    </script>
+</body>
+</html> 

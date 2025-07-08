@@ -1,0 +1,9 @@
+Flask
+Werkzeug
+pymongo
+openai
+git+https://github.com/openai/whisper.git
+python-dotenv
+eventlet
+Flask-SocketIO
+google-generativeai

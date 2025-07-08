@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Start Live Meeting</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        .main-card {
+            max-width: 950px;
+            margin: 2.5rem auto;
+            background: #f6f6ff;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px rgba(102,126,234,0.10);
+            padding: 2.5rem 2rem 2rem 2rem;
+        }
+        .header-section {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .header-section h1 {
+            font-weight: 700;
+            font-size: 2.3rem;
+            color: #2d3748;
+        }
+        .subtitle {
+            color: #6b7280;
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+        .btn-modern {
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 1.08rem;
+            padding: 0.7rem 1.7rem;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.08);
+            transition: background 0.2s, color 0.2s;
+        }
+        .btn-modern.btn-danger {
+            background: linear-gradient(90deg, #e53e3e 0%, #f56565 100%);
+            color: #fff;
+            border: none;
+        }
+        .btn-modern.btn-danger:hover {
+            background: linear-gradient(90deg, #c53030 0%, #e53e3e 100%);
+        }
+        .btn-modern.btn-secondary {
+            background: #e2e8f0;
+            color: #374151;
+            border: none;
+        }
+        .btn-modern.btn-secondary:hover {
+            background: #cbd5e1;
+        }
+        .btn-modern.btn-success {
+            background: linear-gradient(90deg, #22c55e 0%, #16a34a 100%);
+            color: #fff;
+            border: none;
+        }
+        .btn-modern.btn-success:hover {
+            background: linear-gradient(90deg, #16a34a 0%, #22c55e 100%);
+        }
+        .btn-modern.btn-primary {
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            color: #fff;
+            border: none;
+        }
+        .btn-modern.btn-primary:hover {
+            background: linear-gradient(90deg, #5a67d8 0%, #6b21a8 100%);
+        }
+        .controls-section {
+            text-align: center;
+            margin-bottom: 2.5rem;
+        }
+        .transcription-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        .transcription-panel {
+            background: #f9faff;
+            border-radius: 16px;
+            padding: 1.5rem 1.2rem;
+            min-height: 220px;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.04);
+            display: flex;
+            flex-direction: column;
+            border: 1.5px solid #ede9fe;
+        }
+        .panel-header {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #7c3aed;
+            margin-bottom: 0.7rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .panel-header i {
+            color: #7c3aed;
+            font-size: 1.2rem;
+        }
+        .transcription-content {
+            color: #22223b;
+            font-size: 1.04rem;
+            flex: 1;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .alert {
+            margin-top: 1.5rem;
+        }
+        @media (max-width: 900px) {
+            .main-card { padding: 1.2rem; }
+        }
+        @media (max-width: 768px) {
+            .transcription-grid { grid-template-columns: 1fr; }
+        }
+        .modern-title {
+            font-size: 2.7rem;
+            font-weight: 800;
+            color: #7c3aed !important;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+            text-align: center;
+            display: block;
+            border-bottom: none;
+            padding-bottom: 0;
+        }
+        .header-section h1.modern-title {
+            background: none;
+            box-shadow: none;
+        }
+        .process-indicator {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        .status-dot {
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            margin-right: 0.6em;
+            background: #64748b;
+            vertical-align: middle;
+            transition: background 0.2s;
+        }
+        .status-dot.idle {
+            background: #64748b;
+        }
+        .status-dot.recording {
+            background: #e53e3e;
+            animation: pulse 1s infinite;
+        }
+        .status-dot.stopped {
+            background: #a0aec0;
+        }
+        .status-text {
+            color: #64748b;
+        }
+        .status-text.recording {
+            color: #e53e3e;
+        }
+        .status-text.stopped {
+            color: #a0aec0;
+        }
+        @keyframes pulse {
+            0% { box-shadow: 0 0 0 0 rgba(229,62,62,0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(229,62,62,0); }
+            100% { box-shadow: 0 0 0 0 rgba(229,62,62,0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="main-card">
+        <div class="header-section">
+            <h1 class="modern-title">Live Meeting Transcription</h1>
+            <div class="subtitle">Record and transcribe your meeting in real-time with AI-powered notes</div>
+            <a href="/" class="btn btn-modern btn-secondary mb-3"><i class="fas fa-arrow-left"></i> Back to Home</a>
+        </div>
+        <div class="process-indicator" id="processIndicator">
+            <span class="status-dot idle"></span>
+            <span class="status-text">Ready to record</span>
+        </div>
+        <div class="controls-section">
+            <button id="startLiveBtn" class="btn btn-modern btn-danger">
+                <i class="fas fa-microphone"></i> Start Live Meeting
+            </button>
+            <button id="stopLiveBtn" class="btn btn-modern btn-secondary d-none">
+                <i class="fas fa-stop"></i> Stop Live Meeting
+            </button>
+            <button id="saveLiveBtn" class="btn btn-modern btn-success d-none">
+                <i class="fas fa-save"></i> Save Meeting
+            </button>
+            <button id="downloadLiveBtn" class="btn btn-modern btn-primary d-none">
+                <i class="fas fa-download"></i> Download Transcript
+            </button>
+        </div>
+        <div class="transcription-grid">
+            <div class="transcription-panel">
+                <div class="panel-header"><i class="fas fa-microphone-alt"></i> Live Transcript</div>
+                <div id="liveTranscript" class="transcription-content"></div>
+            </div>
+            <div class="transcription-panel">
+                <div class="panel-header"><i class="fas fa-lightbulb"></i> AI Notes</div>
+                <div id="liveNotes" class="transcription-content"></div>
+            </div>
+        </div>
+        <div id="liveError" class="alert alert-danger d-none"></div>
+    </div>
+    <script>
+        const socket = io();
+        let mediaRecorder, isRecording = false, accumulatedTranscript = '', accumulatedNotes = '', currentFilename = '';
+        const startLiveBtn = document.getElementById('startLiveBtn');
+        const stopLiveBtn = document.getElementById('stopLiveBtn');
+        const saveLiveBtn = document.getElementById('saveLiveBtn');
+        const downloadLiveBtn = document.getElementById('downloadLiveBtn');
+        const liveTranscript = document.getElementById('liveTranscript');
+        const liveNotes = document.getElementById('liveNotes');
+        const liveError = document.getElementById('liveError');
+        const processIndicator = document.getElementById('processIndicator');
+
+        startLiveBtn.onclick = async () => {
+            accumulatedTranscript = '';
+            accumulatedNotes = '';
+            liveTranscript.textContent = '';
+            liveNotes.textContent = '';
+            liveError.classList.add('d-none');
+            startLiveBtn.disabled = true;
+            stopLiveBtn.classList.remove('d-none');
+            processIndicator.className = 'process-indicator recording';
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                let options = null;
+                const formats = ['audio/webm;codecs=opus','audio/webm','audio/mp4','audio/wav'];
+                for (const format of formats) {
+                    if (MediaRecorder.isTypeSupported(format)) { options = { mimeType: format }; break; }
+                }
+                if (!options) options = {};
+                mediaRecorder = new MediaRecorder(stream, options);
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                            const base64Audio = reader.result.split(',')[1];
+                            socket.emit('audio_chunk', { audio: base64Audio, format: options.mimeType || 'audio/webm' });
+                        };
+                        reader.readAsDataURL(e.data);
+                    }
+                };
+                mediaRecorder.onstop = () => {
+                    startLiveBtn.disabled = false;
+                    stopLiveBtn.classList.add('d-none');
+                    saveLiveBtn.classList.remove('d-none');
+                    downloadLiveBtn.classList.remove('d-none');
+                    processIndicator.className = 'process-indicator stopped';
+                };
+                mediaRecorder.start(3000);
+                isRecording = true;
+            } catch (err) {
+                showError('Microphone access denied or not available.');
+                startLiveBtn.disabled = false;
+                stopLiveBtn.classList.add('d-none');
+                processIndicator.className = 'process-indicator stopped';
+            }
+        };
+
+        stopLiveBtn.onclick = () => {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+            }
+        };
+
+        saveLiveBtn.onclick = () => {
+            socket.emit('save_live_meeting', {
+                transcript: accumulatedTranscript,
+                notes: accumulatedNotes,
+                meeting_type: 'live_realtime'
+            });
+        };
+
+        downloadLiveBtn.onclick = () => {
+            const content = `Live Meeting Transcript (Real-time)\nDate: ${new Date().toLocaleString()}\n\nSUMMARY:\n${accumulatedNotes}\n\nTRANSCRIPT:\n${accumulatedTranscript}`;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `live_meeting_realtime_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.txt`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        };
+
+        socket.on('transcript', (data) => {
+            if (data.error) { showError(data.error); return; }
+            if (data.transcript) {
+                accumulatedTranscript += (accumulatedTranscript ? ' ' : '') + data.transcript;
+                liveTranscript.textContent = accumulatedTranscript;
+            }
+            if (data.notes) {
+                accumulatedNotes += (accumulatedNotes ? ' ' : '') + data.notes;
+                liveNotes.textContent = accumulatedNotes;
+            }
+        });
+
+        socket.on('save_status', (data) => {
+            if (data.success) {
+                currentFilename = data.filename;
+                liveError.classList.remove('alert-danger');
+                liveError.classList.add('alert-success');
+                liveError.textContent = 'Live meeting saved successfully!';
+                liveError.classList.remove('d-none');
+            } else {
+                showError('Failed to save live meeting: ' + (data.error || 'Unknown error'));
+            }
+        });
+
+        function showError(msg) {
+            liveError.textContent = msg;
+            liveError.classList.remove('d-none');
+            liveError.classList.remove('alert-success');
+            liveError.classList.add('alert-danger');
+        }
+    </script>
+</body>
+</html> 

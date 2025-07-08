@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Record Live Meeting</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.5/socket.io.min.js"></script>
+    <style>
+        * {
+            font-family: 'Inter', sans-serif;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            pointer-events: none;
+            z-index: 1;
+        }
+        
+        .main-container {
+            position: relative;
+            z-index: 2;
+            padding: 2rem 0;
+        }
+        
+        .container {
+            max-width: 1200px;
+            background: #f6f6ff !important;
+            backdrop-filter: blur(20px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.05);
+            padding: 3rem 2rem;
+            margin-top: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .header-section {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        
+        .modern-title {
+            color: #7c3aed !important;
+            font-weight: 800;
+            font-size: 2.7rem;
+            margin-bottom: 0.5rem;
+            letter-spacing: -1px;
+            text-align: center;
+            background: none !important;
+            -webkit-background-clip: unset !important;
+            -webkit-text-fill-color: unset !important;
+            background-clip: unset !important;
+            position: static !important;
+            border-bottom: none !important;
+            padding-bottom: 0 !important;
+            display: block;
+        }
+        
+        h1::after {
+            display: none !important;
+            content: none !important;
+        }
+        
+        .subtitle {
+            color: #64748b;
+            font-size: 1.1rem;
+            font-weight: 400;
+            margin-bottom: 2rem;
+        }
+        
+        .btn-back {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border: 1px solid rgba(102, 126, 234, 0.2);
+            color: #475569;
+            border-radius: 12px;
+            font-weight: 500;
+            padding: 0.75rem 1.5rem;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .btn-back:hover {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            color: #334155;
+            text-decoration: none;
+        }
+        
+        .upload-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 2rem;
+        }
+        
+        .section-title {
+            text-align: center;
+            color: #1e293b;
+            font-weight: 700;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .upload-area {
+            border: 2px dashed rgba(102, 126, 234, 0.3);
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            background: rgba(248, 250, 252, 0.8);
+            transition: all 0.3s ease;
+            position: relative;
+        }
+        
+        .upload-area:hover, .upload-area.dragover {
+            border-color: #667eea;
+            background: rgba(102, 126, 234, 0.05);
+            transform: translateY(-1px);
+        }
+        
+        .upload-icon {
+            font-size: 2.5rem;
+            color: #667eea;
+            margin-bottom: 0.75rem;
+        }
+        
+        .upload-text {
+            color: #475569;
+            font-size: 1rem;
+            font-weight: 500;
+            margin-bottom: 0.25rem;
+        }
+        
+        .upload-hint {
+            color: #94a3b8;
+            font-size: 0.85rem;
+        }
+        
+        .recording-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 500;
+            animation: pulse 2s infinite;
+            margin-bottom: 1rem;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        
+        .btn-control {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.5rem 1.25rem;
+            transition: all 0.3s ease;
+            border: none;
+            margin: 0 0.5rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            min-width: 140px;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+        }
+        
+        .btn-danger:hover {
+            background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(239, 68, 68, 0.4);
+            color: white;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #64748b 0%, #475569 100%);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background: linear-gradient(135deg, #475569 0%, #334155 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(100, 116, 139, 0.3);
+            color: white;
+        }
+        
+        .result-section {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 8px 32px rgba(0, 0, 0, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            display: none;
+        }
+        
+        .result-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .result-icon {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1rem;
+        }
+        
+        .result-title {
+            color: #1e293b;
+            font-weight: 600;
+            font-size: 1.1rem;
+            margin: 0;
+        }
+        
+        .result-content {
+            background: white;
+            border-radius: 8px;
+            padding: 1rem;
+            border: 1px solid rgba(102, 126, 234, 0.08);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            color: #334155;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        
+        .action-buttons {
+            display: flex;
+            gap: 0.75rem;
+            justify-content: center;
+            margin-top: 1.5rem;
+            flex-wrap: wrap;
+        }
+        
+        .btn-modern {
+            border-radius: 8px;
+            font-weight: 600;
+            padding: 0.5rem 1.25rem;
+            transition: all 0.3s ease;
+            border: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            min-width: 140px;
+            justify-content: center;
+            font-size: 0.9rem;
+        }
+        
+        .btn-primary-modern {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-primary-modern:hover {
+            background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(102, 126, 234, 0.4);
+            color: white;
+        }
+        
+        .btn-secondary-modern {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            color: #475569;
+            border: 1px solid rgba(102, 126, 234, 0.2);
+        }
+        
+        .btn-secondary-modern:hover {
+            background: linear-gradient(135deg, #e2e8f0 0%, #cbd5e1 100%);
+            transform: translateY(-2px);
+            color: #334155;
+        }
+        
+        .btn-complete-modern {
+            background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3);
+        }
+        
+        .btn-complete-modern:hover {
+            background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(139, 92, 246, 0.4);
+            color: white;
+        }
+        
+        .alert-modern {
+            border-radius: 12px;
+            border: none;
+            padding: 1rem 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .alert-danger-modern {
+            background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+            color: #dc2626;
+            border-left: 4px solid #ef4444;
+        }
+        
+        .alert-success-modern {
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            color: #16a34a;
+            border-left: 4px solid #22c55e;
+        }
+        
+        /* Custom scrollbar */
+        .result-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .result-content::-webkit-scrollbar-track {
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 3px;
+        }
+        
+        .result-content::-webkit-scrollbar-thumb {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+        }
+        
+        @media (max-width: 768px) {
+            .container {
+                padding: 2rem 1rem;
+                margin-top: 1rem;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .upload-section, .result-section {
+                padding: 1rem 0.75rem;
+            }
+            
+            .upload-area {
+                padding: 1rem 0.75rem;
+            }
+            
+            .upload-icon {
+                font-size: 2rem;
+            }
+            
+            .upload-text {
+                font-size: 0.9rem;
+            }
+            
+            .upload-hint {
+                font-size: 0.8rem;
+            }
+            
+            .result-card {
+                padding: 1rem;
+            }
+            
+            .result-content {
+                padding: 0.75rem;
+                font-size: 0.85rem;
+                max-height: 250px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+                align-items: center;
+                gap: 0.5rem;
+            }
+            
+            .btn-modern {
+                width: 100%;
+                max-width: 200px;
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+            
+            .btn-control {
+                margin: 0.5rem;
+                padding: 0.75rem 1.5rem;
+                font-size: 1rem;
+            }
+        }
+        
+        .d-none {
+            display: none !important;
+        }
+        
+        /* Stepper Styles */
+        .stepper-container {
+            margin-bottom: 3rem;
+            padding: 2rem;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            border-radius: 16px;
+            border: 1px solid rgba(102, 126, 234, 0.1);
+        }
+        
+        .stepper {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: relative;
+            margin-bottom: 2rem;
+        }
+        
+        .stepper::before {
+            content: '';
+            position: absolute;
+            top: 25px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #e2e8f0;
+            z-index: 1;
+        }
+        
+        .step {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            position: relative;
+            z-index: 2;
+            background: white;
+            padding: 0 1rem;
+        }
+        
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+            transition: all 0.3s ease;
+            border: 3px solid #e2e8f0;
+        }
+        
+        .step-circle.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-color: #667eea;
+            transform: scale(1.1);
+        }
+        
+        .step-circle.completed {
+            background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%);
+            color: white;
+            border-color: #22c55e;
+        }
+        
+        .step-circle.pending {
+            background: white;
+            color: #64748b;
+            border-color: #e2e8f0;
+        }
+        
+        .step-label {
+            font-size: 0.9rem;
+            font-weight: 500;
+            color: #64748b;
+            text-align: center;
+            max-width: 120px;
+        }
+        
+        .step-label.active {
+            color: #667eea;
+            font-weight: 600;
+        }
+        
+        .step-label.completed {
+            color: #16a34a;
+            font-weight: 600;
+        }
+        
+        .step-content {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+        }
+        
+        .step-content.active {
+            display: block;
+            animation: fadeInUp 0.5s ease;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .step-title {
+            font-size: 1.3rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 1rem;
+        }
+        
+        .step-description {
+            color: #64748b;
+            margin-bottom: 2rem;
+            line-height: 1.6;
+        }
+        
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #e2e8f0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+        
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+            width: 0%;
+        }
+
+        h1 {
+            color: #a78bfa !important;
+            font-weight: 700;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+        }
+
+        .card-header.bg-gradient {
+            color: #9f25ba !important;
+            font-weight: 600;
+            font-size: 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            border-bottom: none;
+            min-height: 48px;
+        }
+        .card-header i {
+            font-size: 1.2rem;
+        }
+
+        .transcription-content {
+            color: #0b0b0b !important;
+            background: #fff;
+            min-height: 120px;
+            font-size: 1rem;
+            line-height: 1.5;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 2px 8px rgba(102,126,234,0.04);
+        }
+    </style>
+</head>
+<body>
+    <div class="main-container">
+        <div class="container">
+            <div class="header-section">
+                <h1>Record Live Meeting</h1>
+                <p class="subtitle">Record and transcribe your meeting in real-time with AI-powered notes</p>
+                <a href="/" class="btn-back">
+                    <i class="fas fa-arrow-left"></i>
+                    Back to Home
+                </a>
+            </div>
+            
+            <!-- Stepper UI -->
+            <div class="stepper-container">
+                <div class="stepper">
+                    <div class="step">
+                        <div class="step-circle active" id="step1Circle">1</div>
+                        <div class="step-label active" id="step1Label">Record Meeting</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-circle pending" id="step2Circle">2</div>
+                        <div class="step-label pending" id="step2Label">Transcribe Audio</div>
+                    </div>
+                    <div class="step">
+                        <div class="step-circle pending" id="step3Circle">3</div>
+                        <div class="step-label pending" id="step3Label">Review & Save</div>
+                    </div>
+                </div>
+                
+                <!-- Step 1: Record Meeting -->
+                <div class="step-content active" id="step1Content">
+                    <div class="step-title">
+                        <i class="fas fa-microphone"></i>
+                        Step 1: Record Your Meeting
+                    </div>
+                    <div class="step-description">
+                        Click the button below to start recording your meeting. Make sure your microphone is working and you're in a quiet environment.
+                    </div>
+                    <div id="recordingStatus" class="mb-3" style="display: none;">
+                        <span class="recording-indicator">
+                            <i class="fas fa-circle"></i>
+                            Recording in progress...
+                        </span>
+                    </div>
+                    <button id="startRecordBtn" class="btn-control btn-danger">
+                        <i class="fas fa-microphone"></i>
+                        Start Recording
+                    </button>
+                    <button id="stopRecordBtn" class="btn-control btn-secondary d-none">
+                        <i class="fas fa-stop"></i>
+                        Stop Recording
+                    </button>
+                </div>
+                
+                <!-- Step 2: Transcribe Audio -->
+                <div class="step-content" id="step2Content">
+                    <div class="step-title">
+                        <i class="fas fa-cogs"></i>
+                        Step 2: Transcribing Audio
+                    </div>
+                    <div class="step-description">
+                        Your audio is being processed and transcribed. This may take a few moments depending on the length of your recording.
+                    </div>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="transcriptionProgress"></div>
+                    </div>
+                    <div id="transcriptionStatus">Processing audio...</div>
+                </div>
+                
+                <!-- Step 3: Review & Save -->
+                <div class="step-content" id="step3Content">
+                    <div class="step-title">
+                        <i class="fas fa-check-circle"></i>
+                        Step 3: Review &amp; Save
+                    </div>
+                    <div class="step-description">
+                        Review your transcript and AI-generated notes. You can edit them if needed, then save your meeting.
+                    </div>
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-gradient" style="background: linear-gradient(90deg,#667eea,#764ba2); color: red;">
+                                    <i class="fas fa-microphone-alt"></i> Live Transcript
+                                </div>
+                                <div class="card-body">
+                                    <div id="liveTranscript" class="transcription-content" contenteditable="false"></div>
+                                    <div class="mt-2 d-flex gap-2">
+                                        <button id="editTranscriptBtn" class="btn btn-outline-primary btn-sm">Edit</button>
+                                        <button id="saveTranscriptBtn" class="btn btn-success btn-sm d-none">Save</button>
+                                        <button id="cancelTranscriptBtn" class="btn btn-secondary btn-sm d-none">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="card shadow-sm h-100">
+                                <div class="card-header bg-gradient" style="background: linear-gradient(90deg,#f59e42,#f53844); color: red;">
+                                    <i class="fas fa-lightbulb"></i> AI Notes
+                                </div>
+                                <div class="card-body">
+                                    <div id="liveNotes" class="transcription-content" contenteditable="false"></div>
+                                    <div class="mt-2 d-flex gap-2">
+                                        <button id="editNotesBtn" class="btn btn-outline-primary btn-sm">Edit</button>
+                                        <button id="saveNotesBtn" class="btn btn-success btn-sm d-none">Save</button>
+                                        <button id="cancelNotesBtn" class="btn btn-secondary btn-sm d-none">Cancel</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="action-buttons mt-4">
+                        <button id="saveMeetingBtn" class="btn btn-success btn-lg">
+                            <i class="fas fa-save"></i> Save Meeting
+                        </button>
+                        <button id="downloadRecordBtn" class="btn btn-primary btn-lg">
+                            <i class="fas fa-download"></i> Download Transcript
+                        </button>
+                    </div>
+                    <div id="liveError" class="alert alert-danger-modern alert-modern mt-4 d-none" role="alert">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span id="liveErrorMsg">Transcript and notes are required to save.</span>
+                        <button type="button" class="btn-close float-end" aria-label="Close" onclick="this.parentElement.classList.add('d-none')"></button>
+                    </div>
+                    <div id="liveSuccess" class="alert alert-success-modern alert-modern mt-4 d-none" role="alert">
+                        <i class="fas fa-check-circle"></i>
+                        <span id="liveSuccessMsg"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const socket = io();
+        let mediaRecorder;
+        let isRecording = false;
+        let audioChunks = [];
+        let recordedAudioBlob = null;
+        let accumulatedTranscript = '';
+        let accumulatedNotes = '';
+        let originalTranscript = '';
+        let originalNotes = '';
+        let currentFilename = '';
+        let currentStep = 1;
+        
+        // Stepper elements
+        const step1Circle = document.getElementById('step1Circle');
+        const step1Label = document.getElementById('step1Label');
+        const step2Circle = document.getElementById('step2Circle');
+        const step2Label = document.getElementById('step2Label');
+        const step3Circle = document.getElementById('step3Circle');
+        const step3Label = document.getElementById('step3Label');
+        const step1Content = document.getElementById('step1Content');
+        const step2Content = document.getElementById('step2Content');
+        const step3Content = document.getElementById('step3Content');
+        const transcriptionProgress = document.getElementById('transcriptionProgress');
+        const transcriptionStatus = document.getElementById('transcriptionStatus');
+        
+        // Control elements
+        const startRecordBtn = document.getElementById('startRecordBtn');
+        const stopRecordBtn = document.getElementById('stopRecordBtn');
+        const saveMeetingBtn = document.getElementById('saveMeetingBtn');
+        const downloadRecordBtn = document.getElementById('downloadRecordBtn');
+        
+        const liveTranscript = document.getElementById('liveTranscript');
+        const liveNotes = document.getElementById('liveNotes');
+        const liveError = document.getElementById('liveError');
+        const recordingStatus = document.getElementById('recordingStatus');
+
+        // Add playback element
+        let playbackAudio = document.createElement('audio');
+        playbackAudio.controls = true;
+        playbackAudio.style.display = 'none';
+        document.querySelector('.stepper-container').appendChild(playbackAudio);
+
+        function updateStepper(step) {
+            currentStep = step;
+            
+            // Reset all steps
+            [step1Circle, step2Circle, step3Circle].forEach(circle => {
+                circle.className = 'step-circle pending';
+            });
+            [step1Label, step2Label, step3Label].forEach(label => {
+                label.className = 'step-label pending';
+            });
+            [step1Content, step2Content, step3Content].forEach(content => {
+                content.classList.remove('active');
+            });
+            
+            // Update current step
+            if (step >= 1) {
+                step1Circle.className = 'step-circle active';
+                step1Label.className = 'step-label active';
+                step1Content.classList.add('active');
+            }
+            if (step >= 2) {
+                step1Circle.className = 'step-circle completed';
+                step1Label.className = 'step-label completed';
+                step2Circle.className = 'step-circle active';
+                step2Label.className = 'step-label active';
+                step2Content.classList.add('active');
+            }
+            if (step >= 3) {
+                step2Circle.className = 'step-circle completed';
+                step2Label.className = 'step-label completed';
+                step3Circle.className = 'step-circle active';
+                step3Label.className = 'step-label active';
+                step3Content.classList.add('active');
+            }
+        }
+
+        startRecordBtn.onclick = async () => {
+            audioChunks = [];
+            recordedAudioBlob = null;
+            accumulatedTranscript = '';
+            accumulatedNotes = '';
+            liveNotes.textContent = '';
+            liveTranscript.textContent = '';
+            playbackAudio.style.display = 'none';
+            startRecordBtn.disabled = true;
+            stopRecordBtn.classList.remove('d-none');
+            recordingStatus.style.display = 'block';
+            liveError.classList.add('d-none');
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                let options = null;
+                const formats = [
+                    'audio/webm;codecs=opus',
+                    'audio/webm',
+                    'audio/mp4',
+                    'audio/wav'
+                ];
+                for (const format of formats) {
+                    if (MediaRecorder.isTypeSupported(format)) {
+                        options = { mimeType: format };
+                        break;
+                    }
+                }
+                if (!options) options = {};
+                mediaRecorder = new MediaRecorder(stream, options);
+                mediaRecorder.ondataavailable = (e) => {
+                    if (e.data.size > 0) {
+                        audioChunks.push(e.data);
+                    }
+                };
+                mediaRecorder.onstop = () => {
+                    startRecordBtn.disabled = false;
+                    stopRecordBtn.classList.add('d-none');
+                    recordingStatus.style.display = 'none';
+                    recordedAudioBlob = new Blob(audioChunks, { type: options.mimeType || 'audio/webm' });
+                    playbackAudio.src = URL.createObjectURL(recordedAudioBlob);
+                    playbackAudio.style.display = 'block';
+                    // Move to step 2: Transcribe
+                    updateStepper(2);
+                    simulateTranscriptionProgress();
+                    // Send audio to backend for transcription
+                    recordedAudioBlob.arrayBuffer().then(buffer => {
+                        const base64Audio = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+                        socket.emit('transcribe_complete_audio', {
+                            audio: base64Audio,
+                            format: options.mimeType || 'audio/webm'
+                        });
+                    });
+                };
+                mediaRecorder.start();
+                isRecording = true;
+            } catch (err) {
+                showError('Microphone access denied or not available.');
+                startRecordBtn.disabled = false;
+                stopRecordBtn.classList.add('d-none');
+                recordingStatus.style.display = 'none';
+            }
+        };
+
+        function simulateTranscriptionProgress() {
+            let progress = 0;
+            const interval = setInterval(() => {
+                progress += Math.random() * 15;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(interval);
+                    transcriptionStatus.textContent = 'Transcription complete!';
+                    
+                    // Move to step 3: Review & Save
+                    setTimeout(() => {
+                        updateStepper(3);
+                        // Show edit buttons
+                        document.getElementById('editTranscriptBtn').classList.remove('d-none');
+                        document.getElementById('editNotesBtn').classList.remove('d-none');
+                    }, 1000);
+                }
+                transcriptionProgress.style.width = progress + '%';
+                transcriptionStatus.textContent = `Processing audio... ${Math.round(progress)}%`;
+            }, 200);
+        }
+
+        stopRecordBtn.onclick = () => {
+            if (mediaRecorder && isRecording) {
+                mediaRecorder.stop();
+                isRecording = false;
+            }
+        };
+
+        socket.on('transcription_complete', (data) => {
+            if (data.success) {
+                accumulatedTranscript = data.transcript;
+                accumulatedNotes = data.summary;
+                liveTranscript.textContent = accumulatedTranscript;
+                liveNotes.textContent = accumulatedNotes;
+                updateStepper(3);
+                document.getElementById('editTranscriptBtn').classList.remove('d-none');
+                document.getElementById('editNotesBtn').classList.remove('d-none');
+            } else {
+                showError(data.error || 'Transcription failed.');
+            }
+        });
+
+        saveMeetingBtn.onclick = () => {
+            if (!accumulatedTranscript || !accumulatedNotes) {
+                showError('Transcript and notes are required to save.');
+                return;
+            }
+            fetch('/save_meeting', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    transcript: accumulatedTranscript,
+                    summary: accumulatedNotes,
+                    meeting_type: 'recorded'
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    currentFilename = data.filename;
+                    showSuccess('Meeting saved successfully! <a href="/meetings/history" class="alert-link">View Meeting History</a>');
+                } else {
+                    showError(data.error || 'Failed to save meeting.');
+                }
+            })
+            .catch(err => showError('Failed to save meeting: ' + err));
+        };
+
+        downloadRecordBtn.onclick = () => {
+            if (!accumulatedTranscript) {
+                showError('No transcript to download.');
+                return;
+            }
+            const content = `Meeting Transcript\n\nSUMMARY:\n${accumulatedNotes}\n\nTRANSCRIPT:\n${accumulatedTranscript}`;
+            const blob = new Blob([content], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'meeting_transcript.txt';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        };
+
+        // Transcript Edit
+        const editTranscriptBtn = document.getElementById('editTranscriptBtn');
+        const saveTranscriptBtn = document.getElementById('saveTranscriptBtn');
+        const cancelTranscriptBtn = document.getElementById('cancelTranscriptBtn');
+        editTranscriptBtn.onclick = function() {
+            originalTranscript = liveTranscript.textContent;
+            liveTranscript.contentEditable = true;
+            liveTranscript.focus();
+            this.classList.add('d-none');
+            saveTranscriptBtn.classList.remove('d-none');
+            cancelTranscriptBtn.classList.remove('d-none');
+        };
+        cancelTranscriptBtn.onclick = function() {
+            liveTranscript.textContent = originalTranscript;
+            liveTranscript.contentEditable = false;
+            this.classList.add('d-none');
+            saveTranscriptBtn.classList.add('d-none');
+            editTranscriptBtn.classList.remove('d-none');
+        };
+        saveTranscriptBtn.onclick = function() {
+            if (!currentFilename) {
+                alert('Please save the meeting first before editing.');
+                return;
+            }
+            
+            const updatedTranscript = liveTranscript.textContent;
+            console.log('Saving transcript update for:', currentFilename);
+            console.log('Updated transcript length:', updatedTranscript.length);
+            
+            socket.emit('update_live_meeting', {
+                filename: currentFilename,
+                transcript: updatedTranscript,
+                summary: liveNotes.textContent
+            });
+            
+            liveTranscript.contentEditable = false;
+            this.classList.add('d-none');
+            cancelTranscriptBtn.classList.add('d-none');
+            editTranscriptBtn.classList.remove('d-none');
+        };
+
+        // Notes Edit
+        const editNotesBtn = document.getElementById('editNotesBtn');
+        const saveNotesBtn = document.getElementById('saveNotesBtn');
+        const cancelNotesBtn = document.getElementById('cancelNotesBtn');
+        editNotesBtn.onclick = function() {
+            originalNotes = liveNotes.textContent;
+            liveNotes.contentEditable = true;
+            liveNotes.focus();
+            this.classList.add('d-none');
+            saveNotesBtn.classList.remove('d-none');
+            cancelNotesBtn.classList.remove('d-none');
+        };
+        cancelNotesBtn.onclick = function() {
+            liveNotes.textContent = originalNotes;
+            liveNotes.contentEditable = false;
+            this.classList.add('d-none');
+            saveNotesBtn.classList.add('d-none');
+            editNotesBtn.classList.remove('d-none');
+        };
+        saveNotesBtn.onclick = function() {
+            if (!currentFilename) {
+                alert('Please save the meeting first before editing.');
+                return;
+            }
+            
+            const updatedNotes = liveNotes.textContent;
+            console.log('Saving notes update for:', currentFilename);
+            console.log('Updated notes length:', updatedNotes.length);
+            
+            socket.emit('update_live_meeting', {
+                filename: currentFilename,
+                transcript: liveTranscript.textContent,
+                summary: updatedNotes
+            });
+            
+            liveNotes.contentEditable = false;
+            this.classList.add('d-none');
+            cancelNotesBtn.classList.add('d-none');
+            editNotesBtn.classList.remove('d-none');
+        };
+
+        // Listen for update status
+        socket.on('update_status', (data) => {
+            console.log('Update status received:', data);
+            
+            if (data.success) {
+                // Show success message in the error area (which can also show success)
+                liveError.classList.remove('alert-danger');
+                liveError.classList.add('alert-success');
+                liveError.innerHTML = `Meeting updated successfully!`;
+                liveError.classList.remove('d-none');
+                
+                // Hide success message after 3 seconds
+                setTimeout(() => {
+                    liveError.classList.add('d-none');
+                }, 3000);
+            } else {
+                console.error('Failed to update meeting:', data.error);
+                showError('Failed to update meeting: ' + (data.error || 'Unknown error'));
+            }
+        });
+
+        function showError(msg) {
+            const liveError = document.getElementById('liveError');
+            const liveErrorMsg = document.getElementById('liveErrorMsg');
+            liveErrorMsg.textContent = msg;
+            liveError.classList.remove('d-none');
+            liveError.classList.remove('alert-success');
+            liveError.classList.add('alert-danger');
+            document.getElementById('liveSuccess').classList.add('d-none');
+        }
+        function showSuccess(msg) {
+            const liveSuccess = document.getElementById('liveSuccess');
+            const liveSuccessMsg = document.getElementById('liveSuccessMsg');
+            liveSuccessMsg.innerHTML = msg;
+            liveSuccess.classList.remove('d-none');
+            document.getElementById('liveError').classList.add('d-none');
+        }
+    </script>
+</body>
+</html> 
